@@ -1,0 +1,9 @@
+{
+  "name": "buncord",
+  "scripts": {
+    "clean": "rm -rf dist out node_modules"
+  },
+  "dependencies": {
+    "bun-types": "^0.0.79"
+  }
+}
