@@ -51,11 +51,11 @@ export class RestManager {
   }
 
   /** Send a request to discord */
-  async get<T>(url: string): Promise<T> {
+  async get<T = undefined>(url: string): Promise<T> {
     return await this.makeRequest({ method: "GET", url });
   }
 
-  async post<T>(
+  async post<T = undefined>(
     url: string,
     payload?: {
       body?: Record<string, unknown>;
@@ -72,7 +72,7 @@ export class RestManager {
     });
   }
 
-  async patch<T>(
+  async patch<T = undefined>(
     url: string,
     payload?: {
       body?: Record<string, unknown> | null | string | any[];
@@ -89,7 +89,7 @@ export class RestManager {
     });
   }
 
-  async put<T>(
+  async put<T = undefined>(
     url: string,
     payload?: {
       body?: Record<string, string | number> | any[];
@@ -104,7 +104,7 @@ export class RestManager {
     });
   }
 
-  async delete<T>(url: string, payload?: { reason?: string }): Promise<T> {
+  async delete<T = undefined>(url: string, payload?: { reason?: string }): Promise<T> {
     return await this.makeRequest({
       method: "DELETE",
       url,
