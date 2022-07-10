@@ -28,13 +28,14 @@ export class RestManager {
     return this.options.version ?? 10;
   }
 
-  /** The base url of the discord api */
+  /** The base url of the discord api or the proxy that was provided with the api and version added on. */
   get baseURL(): string {
     return `${this.options.baseURL ?? "https://discord.com"}/api/v${
       this.version
     }`;
   }
 
+  /** Make a request to discords api or the proxy url. */
   async makeRequest<T>(data: RequestData): Promise<T> {
     return await fetch(`${this.baseURL}/${data.url}`, {
       method: data.method,
@@ -50,11 +51,12 @@ export class RestManager {
     }).then((res) => res.json()) as T;
   }
 
-  /** Send a request to discord */
+  /** Sends a GET request */
   async get<T = undefined>(url: string): Promise<T> {
     return await this.makeRequest({ method: "GET", url });
   }
 
+  /** Sends a post request */
   async post<T = undefined>(
     url: string,
     payload?: {
@@ -72,6 +74,7 @@ export class RestManager {
     });
   }
 
+  /** Sends a patch request */
   async patch<T = undefined>(
     url: string,
     payload?: {
@@ -89,6 +92,7 @@ export class RestManager {
     });
   }
 
+  /** Sends a put request */
   async put<T = undefined>(
     url: string,
     payload?: {
@@ -104,6 +108,7 @@ export class RestManager {
     });
   }
 
+  /** Sends a delete request. */
   async delete<T = undefined>(url: string, payload?: { reason?: string }): Promise<T> {
     return await this.makeRequest({
       method: "DELETE",
@@ -127,17 +132,25 @@ export interface RestManagerOptions {
 }
 
 export interface RequestData {
+  /** The method to send the request with fetch */
   method: RequestMethod;
+  /** The route to make the request to. For example: /channels/ChannelIDHere/messages/MessageIDHere */
   url: string;
+  /** Any headers you would like to override or add on. */
   headers?: Record<string, string>;
+  /** The reason you wish to add to audit logs. Will not work if you override the X-Audit-Log-Reason header. */
   reason?: string;
+  /** The body of the request that is sent */
   body?: Record<string, unknown> | string | null | any[];
+  /** The file attachment(s) you wish to send. */
   file?: FileContent | FileContent[];
 }
 
 export type RequestMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
 
 export interface FileContent {
+  /** The buffer for the file you want to send. */
   buffer: Buffer;
+  /** The name of the file attachment. */
   name: string;
 }
