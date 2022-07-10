@@ -30,7 +30,7 @@ export class RestManager {
 
   /** The base url of the discord api */
   get baseURL(): string {
-    return `${this.options.baseURL ?? "https://discordapp.com"}/api/v${
+    return `${this.options.baseURL ?? "https://discord.com"}/api/v${
       this.version
     }`;
   }
