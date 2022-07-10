@@ -55,14 +55,14 @@ export class RestManager {
     return await this.makeRequest({ method: "GET", url });
   }
 
-  async post(
+  async post<T>(
     url: string,
     payload?: {
       body?: Record<string, unknown>;
       reason?: string;
       file?: FileContent | FileContent[];
     }
-  ) {
+  ): Promise<T> {
     return await this.makeRequest({
       method: "POST",
       url,
@@ -72,14 +72,14 @@ export class RestManager {
     });
   }
 
-  async patch(
+  async patch<T>(
     url: string,
     payload?: {
       body?: Record<string, unknown> | null | string | any[];
       reason?: string;
       file?: FileContent | FileContent[];
     }
-  ) {
+  ): Promise<T> {
     return await this.makeRequest({
       method: "PATCH",
       url,
@@ -89,13 +89,13 @@ export class RestManager {
     });
   }
 
-  async put(
+  async put<T>(
     url: string,
     payload?: {
       body?: Record<string, string | number> | any[];
       reason?: string;
     }
-  ) {
+  ): Promise<T> {
     return await this.makeRequest({
       method: "PUT",
       url,
@@ -104,7 +104,7 @@ export class RestManager {
     });
   }
 
-  async delete(url: string, payload?: { reason?: string }) {
+  async delete<T>(url: string, payload?: { reason?: string }): Promise<T> {
     return await this.makeRequest({
       method: "DELETE",
       url,
