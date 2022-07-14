@@ -1,8 +1,29 @@
 import { Buffer } from "fs";
+import { RestQueue } from "./RestQueue";
+import { routefy } from "./routefy";
 
 export class RestManager {
   /** The options used to configure this manager. */
   options: RestManagerOptions;
+
+  /** Maps the bucketID-queueID(the simple url) for the queue */
+  bucketQueueMap = new Map<string, string>();
+
+  /** The queues that are currently being processed. */
+  queues = new Map<string, RestQueue>();
+
+  /** The timestamp when the token is no longer rate limited. */
+  globallyRateLimitedUntil: number | undefined;
+
+  /** Used to prevent the 1hr ban from discord. */
+  invalid = {
+    /** The amount of requests that were made in the latest interval which returned one of the invalid request errors.  */
+    count: 0,
+    /** The amount of time in milliseconds to wait before resetting the count. Defaults to 10 minutes. */
+    interval: 1000 * 60 * 10,
+    /** The max amount of requests allowed during an interval. Defaults to 9,999 (one less than 10k which will get you banned). */
+    max: 9999,
+  };
 
   constructor(options: RestManagerOptions) {
     this.options = options;
@@ -35,20 +56,69 @@ export class RestManager {
     }`;
   }
 
+  /** Whether or not this current instance is connected to a proxy rest. */
+  get isConnectedToProxy(): boolean {
+    return !!this.options.baseURL;
+  }
+
+  /** Whether or not this manager is globally rate limited. */
+  get isGloballyRateLimited(): boolean {
+    if (!this.globallyRateLimitedUntil) return false;
+
+    // Check if the bot is rate limited from invalid requests.
+    if (this.invalid.count >= this.invalid.max) return true;
+
+    // Check if the rate limit has expired.
+    const remaining = this.globallyRateLimitedUntil - Date.now();
+    // If the remaining time is less than 0, then remove the rate limit timestamp.
+    if (remaining <= 0) this.globallyRateLimitedUntil = undefined;
+
+    return remaining > 0;
+  }
+
   /** Make a request to discords api or the proxy url. */
   async makeRequest<T>(data: RequestData): Promise<T> {
-    return await fetch(`${this.baseURL}/${data.url}`, {
-      method: data.method,
-      headers: {
-        Authorization: this.authorization,
-        "Content-Type": ["GET", "DELETE"].includes(data.method)
-          ? ""
-          : "application/json",
-        "X-Audit-Log-Reason": data.reason ?? "",
-        ...(data.headers ?? {}),
-      },
-      body: data.body ? JSON.stringify(data.body) : undefined,
-    }).then((res) => res.json()) as T;
+    if (this.isConnectedToProxy)
+      return (await fetch(`${this.baseURL}/${data.url}`, {
+        method: data.method,
+        headers: {
+          Authorization: this.authorization,
+          "Content-Type": ["GET", "DELETE"].includes(data.method)
+            ? ""
+            : "application/json",
+          "X-Audit-Log-Reason": data.reason ?? "",
+          ...(data.headers ?? {}),
+        },
+        body: data.body ? JSON.stringify(data.body) : undefined,
+      }).then((res) => res.json())) as T;
+
+    // This request needs to be sent to discord, so we need to queue it properly.
+    return new Promise((resolve, reject) => {
+      // Attach the resolve and reject functions to the request.
+      data.resolve = resolve;
+      data.reject = reject;
+
+      // Get the shared route for the request.
+      const route = this.getRoute(data);
+      // Get the queue for this route.
+      let queue = this.queues.get(route);
+
+      if (!queue) {
+        // Create a new queue for this route.
+        queue = new RestQueue(this, route);
+        // Add the queue to cache for future requests.
+        this.queues.set(route, queue);
+      }
+
+      // Add the request to the queue.
+      queue.add(data);
+      // Begin processing the queue.
+      queue.process();
+    });
+  }
+
+  getRoute(data: RequestData) {
+    return routefy(data.url, data.method);
   }
 
   /** Sends a GET request */
@@ -109,7 +179,10 @@ export class RestManager {
   }
 
   /** Sends a delete request. */
-  async delete<T = undefined>(url: string, payload?: { reason?: string }): Promise<T> {
+  async delete<T = undefined>(
+    url: string,
+    payload?: { reason?: string }
+  ): Promise<T> {
     return await this.makeRequest({
       method: "DELETE",
       url,
@@ -144,6 +217,10 @@ export interface RequestData {
   body?: Record<string, unknown> | string | null | any[];
   /** The file attachment(s) you wish to send. */
   file?: FileContent | FileContent[];
+  /** The resolve function to call when the request is finished. */
+  resolve?: (value: any) => void;
+  /** The reject function to call when the request fails. */
+  reject?: (reason?: any) => void;
 }
 
 export type RequestMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
