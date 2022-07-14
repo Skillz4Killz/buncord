@@ -185,6 +185,7 @@ export class RestQueue extends Queue<RequestData> {
         );
       }
 
+      // Increase the amount of retries.
       item.retries++;
       // Add back to queue
       const resetAfter = response.headers.get("Retry-After");
