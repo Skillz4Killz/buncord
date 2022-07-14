@@ -198,6 +198,13 @@ export class RestManager {
       reason: payload?.reason,
     });
   }
+
+  /** Handler that runs when a request fails too many times. Keep async so it can be overriden to customize and send to a webhook on a dev server to alert you. */
+  async maxRetriesExceeded(item: RequestData, response: Response) {
+    console.log(
+      `Max retries exceeded for ${item.url}. Error: ${response.status}`
+    );
+  }
 }
 
 export default RestManager;
@@ -236,6 +243,8 @@ export interface RequestData {
   bucketID?: string;
   /** The amount of times this request has been retried. */
   retries?: number;
+  /** The timeout id if this request failed and needs to be added back to the queue after some time. */
+  retryID?: number;
 }
 
 export type RequestMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";

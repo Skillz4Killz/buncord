@@ -71,7 +71,6 @@ export class RestQueue extends Queue<RequestData> {
     if (this.available.amount === undefined) {
       const item = this.next();
       if (!item) {
-        // TODO: Close this queue.
         this.processing = false;
         // Delete this queue since no more items.
         this.manager.queues.delete(this.id);
@@ -149,6 +148,8 @@ export class RestQueue extends Queue<RequestData> {
 
     // Returned only on HTTP 429 responses if the rate limit encountered is the global rate limit (not per-route)
     const global = headers.get("X-RateLimit-Global");
+    const retryAfter = headers.get("Retry-After");
+
     if (global) {
       // Returned only on HTTP 429 responses. Value can be user (per bot or user limit), global (per bot or user global limit), or shared (per resource limit)
       const scope = headers.get("X-RateLimit-Scope");
@@ -163,9 +164,8 @@ export class RestQueue extends Queue<RequestData> {
           }, this.manager.invalid.interval);
       } else {
         // The number of seconds until the rate limit will be reset.
-        const resetAfter = headers.get("Reset-After");
-        if (resetAfter)
-          this.manager.globallyRateLimitedUntil = Number(resetAfter) * 1000;
+        if (retryAfter)
+          this.manager.globallyRateLimitedUntil = Number(retryAfter) * 1000;
       }
     }
   }
@@ -176,7 +176,8 @@ export class RestQueue extends Queue<RequestData> {
       if (!item.retries) item.retries = 0;
       // This request should now be deleted.
       else if (item.retries >= this.manager.maxRetries) {
-        // TODO: alert the user that this request has been deleted.
+        // Alert the user that this request has been deleted.
+        await this.manager.maxRetriesExceeded(item, response);
         return item.reject?.(
           `[RestFailedMaxRetries] This request reached the max amount of retries. ${JSON.stringify(
             item
@@ -185,7 +186,15 @@ export class RestQueue extends Queue<RequestData> {
       }
 
       item.retries++;
-      // TODO: add back to queue
+      // Add back to queue
+      const resetAfter = response.headers.get("Retry-After");
+      if (resetAfter) {
+        // Store this id so it can be cancel if necessary.
+        item.retryID = setTimeout(() => {
+          // Add to the front of the queue since this request is being retried.
+          this.items.unshift(item);
+        }, Number(resetAfter) * 1000);
+      }
       return;
     }
 
