@@ -90,43 +90,6 @@ export class RestQueue extends Queue<RequestData> {
         .map((item) => this.sendRequest(item))
     );
 
-    // Attempt 2: Not happy with this
-    // While there are items in the queue, process them.
-    // while (this.items.length) {
-    //   // Get the next item in the queue.
-    //   const item = this.next();
-    //   // If the item is undefined, continue.
-    //   if (!item) break;
-
-    //   // TODO: bucket rate limit.
-
-    //   // Check if there is an available request left to make.
-
-    //   // Make a request to the url.
-    //   fetch(item.url, {
-    //     method: item.method,
-    //     headers: {
-    //       Authorization: this.manager.authorization,
-    //       "Content-Type": ["GET", "DELETE"].includes(item.method)
-    //         ? ""
-    //         : "application/json",
-    //       "X-Audit-Log-Reason": item.reason ?? "",
-    //       ...(item.headers ?? {}),
-    //     },
-    //     body: item.body ? JSON.stringify(item.body) : undefined,
-    //   })
-    //     // TODO: change this to await style
-    //     .then((res) => res.json())
-    //     .then((res) => {
-    //       item.resolve?.(res);
-    //       return res;
-    //     })
-    //     // TODO: error handling
-    //     .catch((err) => {
-    //       console.log("errored");
-    //     });
-    // }
-
     // Delete this queue if there are no more items in queue.
     if (!this.items.length) {
       // Set the queue to not processing.
