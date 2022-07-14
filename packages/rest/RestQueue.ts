@@ -7,8 +7,6 @@ export class RestQueue extends Queue<RequestData> {
   /** The RestManager instance that this queue is attached to. */
   manager: RestManager;
 
-  /** The timestamp when this queue is no longer rate limited. */
-  rateLimitedUntil: number | undefined;
   /** The available requests to make at the moment. */
   available: { amount?: number; resetAt?: number; max?: number } = {
     /** The amount of requests that are available at the moment. */
@@ -31,12 +29,12 @@ export class RestQueue extends Queue<RequestData> {
 
   /** Whether or not this queue is rate limited. */
   get isRateLimited(): boolean {
-    if (!this.rateLimitedUntil) return false;
+    if (!this.available.resetAt) return false;
 
     // Check if the rate limit has expired.
-    const remaining = this.rateLimitedUntil - Date.now();
+    const remaining = this.available.resetAt - Date.now();
     // If the remaining time is less than 0, then remove the rate limit timestamp.
-    if (remaining <= 0) this.rateLimitedUntil = undefined;
+    if (remaining <= 0) this.available.resetAt = undefined;
 
     return remaining > 0;
   }
@@ -62,7 +60,7 @@ export class RestQueue extends Queue<RequestData> {
       this.timeoutID = setTimeout(() => {
         this.timeoutID = undefined;
         this.process();
-      }, this.rateLimitedUntil! - Date.now());
+      }, this.available.resetAt! - Date.now());
       return;
     }
 
@@ -121,14 +119,80 @@ export class RestQueue extends Queue<RequestData> {
       body: item.body ? JSON.stringify(item.body) : undefined,
     });
 
-    // TODO: Process headers
+    // Process headers
+    this.processHeaders(item, response.headers);
 
-    // TODO: Set bucket id if available.
+    // Handle any errors
+    if (response.status < 200 || response.status >= 400)
+      return this.handleError(item, response);
 
-    // TODO: error handling
+    // handle 204 undefined response
+    return response.status !== 204 ? await response.json() : undefined;
+  }
 
-    // TODO: handle 204 undefined response
+  processHeaders(item: RequestData, headers: Headers) {
+    // The number of requests that can be made
+    const limit = headers.get("X-RateLimit-Limit");
+    this.available.max = limit ? Number(limit) : undefined;
 
-    return await response.json();
+    // The number of remaining requests that can be made
+    const remaining = headers.get("X-RateLimit-Remaining");
+    this.available.amount = remaining ? Number(remaining) : undefined;
+
+    // The timestamp when the amount of requests will be reset.
+    const resetAt = headers.get("X-RateLimit-Reset-After");
+    this.available.resetAt = resetAt ? Number(resetAt) * 1000 : undefined;
+
+    // A unique string denoting the rate limit being encountered (non-inclusive of top-level resources in the path)
+    const bucketID = headers.get("X-RateLimit-Bucket");
+    if (bucketID) item.bucketID = bucketID;
+
+    // Returned only on HTTP 429 responses if the rate limit encountered is the global rate limit (not per-route)
+    const global = headers.get("X-RateLimit-Global");
+    if (global) {
+      // Returned only on HTTP 429 responses. Value can be user (per bot or user limit), global (per bot or user global limit), or shared (per resource limit)
+      const scope = headers.get("X-RateLimit-Scope");
+      // Shared 429 do not effect invalid counter
+      if (scope && scope !== "shared") {
+        this.manager.invalid.count++;
+        // If necessary, create a timeout which will reset the invalid counter.
+        if (!this.manager.invalid.timeoutID)
+          this.manager.invalid.timeoutID = setTimeout(() => {
+            this.manager.invalid.count = 0;
+            this.manager.invalid.timeoutID = 0;
+          }, this.manager.invalid.interval);
+      } else {
+        // The number of seconds until the rate limit will be reset.
+        const resetAfter = headers.get("Reset-After");
+        if (resetAfter)
+          this.manager.globallyRateLimitedUntil = Number(resetAfter) * 1000;
+      }
+    }
+  }
+
+  async handleError(item: RequestData, response: Response) {
+    // Handle rate limited errors
+    if (response.status === 429) {
+      if (!item.retries) item.retries = 0;
+      // This request should now be deleted.
+      else if (item.retries >= this.manager.maxRetries) {
+        // TODO: alert the user that this request has been deleted.
+        return item.reject?.(
+          `[RestFailedMaxRetries] This request reached the max amount of retries. ${JSON.stringify(
+            item
+          )}`
+        );
+      }
+
+      item.retries++;
+      // TODO: add back to queue
+      return;
+    }
+
+    // Handle other errors
+    item.reject?.({
+      status: response.status,
+      error: response.type ? JSON.stringify(await response.json()) : undefined,
+    });
   }
 }

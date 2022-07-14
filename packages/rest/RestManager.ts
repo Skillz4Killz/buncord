@@ -21,8 +21,12 @@ export class RestManager {
     count: 0,
     /** The amount of time in milliseconds to wait before resetting the count. Defaults to 10 minutes. */
     interval: 1000 * 60 * 10,
+    /** The timeout id which is going to reset the counter. */
+    timeoutID: 0,
     /** The max amount of requests allowed during an interval. Defaults to 9,999 (one less than 10k which will get you banned). */
     max: 9999,
+    /** The error status codes on a response that indicate if it should be considered an invalid request. */
+    codes: [401, 403, 429],
   };
 
   constructor(options: RestManagerOptions) {
@@ -74,6 +78,11 @@ export class RestManager {
     if (remaining <= 0) this.globallyRateLimitedUntil = undefined;
 
     return remaining > 0;
+  }
+
+  /** How many times a request should be retried if it errors with a 429(too fast) */
+  get maxRetries(): number {
+    return this.options.maxRetries ?? 10;
   }
 
   /** Make a request to discords api or the proxy url. */
@@ -202,6 +211,8 @@ export interface RestManagerOptions {
   version?: 10;
   /** The authorization token to use for a proxy rest. When using a proxy, this can help identify that requests being sent to your proxy are in fact yours. */
   proxyAuthorization?: string;
+  /** The amount of times a request should be retried when it fails by a 429(too fast) error. Defaults to 10 */
+  maxRetries?: number;
 }
 
 export interface RequestData {
@@ -221,6 +232,10 @@ export interface RequestData {
   resolve?: (value: any) => void;
   /** The reject function to call when the request fails. */
   reject?: (reason?: any) => void;
+  /** Used to determine if this items route is ratelimited from another shared request made previously. */
+  bucketID?: string;
+  /** The amount of times this request has been retried. */
+  retries?: number;
 }
 
 export type RequestMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
