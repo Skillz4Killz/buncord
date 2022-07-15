@@ -42,12 +42,14 @@ export class RestQueue extends Queue<RequestData> {
   async process() {
     // If the queue is processing, return.
     if (this.processing) return;
-
+    console.log("in process 2");
     // If this queue has a timeout set already to process queue its rate limited.
     if (this.timeoutID) return;
+    console.log("in process 3");
 
     // Check if globally rate limited.
     if (this.manager.isGloballyRateLimited) {
+      console.log("in process 4");
       this.timeoutID = setTimeout(() => {
         this.timeoutID = undefined;
         this.process();
@@ -57,6 +59,7 @@ export class RestQueue extends Queue<RequestData> {
 
     // Check if this queue is rate limited.
     if (this.isRateLimited) {
+      console.log("in process 5");
       this.timeoutID = setTimeout(() => {
         this.timeoutID = undefined;
         this.process();
@@ -64,69 +67,76 @@ export class RestQueue extends Queue<RequestData> {
       return;
     }
 
+    console.log("in process 6");
     // Set the queue to processing.
     this.processing = true;
 
-    // If available requests is undefined then we fetch a single request.
-    if (this.available.amount === undefined) {
+    while (this.items.length) {
+      // console.log("in process 7");
       const item = this.next();
       if (!item) {
+        // console.log("in process 8");
         this.processing = false;
         // Delete this queue since no more items.
         this.manager.queues.delete(this.id);
         return;
       }
 
+      // console.log("in process 9");
+      if (this.available.amount && this.available.amount <= 0) break;
+      // console.log("in process 10");
       await this.sendRequest(item);
+      // console.log("in process 11");
     }
 
-    // Since we know how many requests is available, we can fetch them all at once.
-    await Promise.all(
-      this.items
-        .splice(0, this.available.amount)
-        .map((item) => this.sendRequest(item))
-    );
-
-    // Delete this queue if there are no more items in queue.
+    // console.log("in process 12");
+    // Set the queue to not processing.
+    this.processing = false;
     if (!this.items.length) {
-      // Set the queue to not processing.
-      this.processing = false;
-
+      // console.log("in process 13");
       this.manager.queues.delete(this.id);
       return;
-    } else if (this.available.resetAt)
+    } else if (this.available.resetAt) {
+      // console.log("in process 14");
       this.timeoutID = setTimeout(() => {
         this.timeoutID = undefined;
         this.process();
       }, this.available.resetAt - Date.now());
+    }
   }
 
   async sendRequest(item: RequestData) {
     // Remove one from the amount of available requests.
     if (this.available.amount) this.available.amount--;
+    console.log("in sendRequest 1", item.body);
 
-    const response = await fetch(item.url, {
-      method: item.method,
-      headers: {
-        Authorization: this.manager.authorization,
-        "Content-Type": ["GET", "DELETE"].includes(item.method)
-          ? ""
-          : "application/json",
-        "X-Audit-Log-Reason": item.reason ?? "",
-        ...(item.headers ?? {}),
-      },
-      body: item.body ? JSON.stringify(item.body) : undefined,
-    });
-
-    // Process headers
-    this.processHeaders(item, response.headers);
-
-    // Handle any errors
-    if (response.status < 200 || response.status >= 400)
-      return this.handleError(item, response);
-
-    // handle 204 undefined response
-    return response.status !== 204 ? await response.json() : undefined;
+    try {
+      const response = await fetch(`${this.manager.baseURL}/${item.url}`, {
+        method: item.method,
+        headers: {
+          Authorization: this.manager.authorization,
+          "Content-Type": ["GET", "DELETE"].includes(item.method)
+            ? ""
+            : "application/json",
+          "X-Audit-Log-Reason": item.reason ?? "",
+          ...(item.headers ?? {}),
+        },
+        body: item.body ? JSON.stringify(item.body) : undefined,
+      });
+      console.log("in sendRequest 2");
+      // Process headers
+      this.processHeaders(item, response.headers);
+      // console.log("in sendRequest 3");
+      // Handle any errors
+      if (response.status < 200 || response.status >= 400)
+        return this.handleError(item, response);
+      // console.log("in sendRequest 4");
+      // handle 204 undefined response
+      return response.status !== 204 ? await response.json() : undefined;
+    } catch (error) {
+      // TODO: better handling of error
+      console.log("in catch", error);
+    }
   }
 
   processHeaders(item: RequestData, headers: Headers) {
