@@ -33,8 +33,12 @@ export class RestQueue extends Queue<RequestData> {
 
     // Check if the rate limit has expired.
     const remaining = this.available.resetAt - Date.now();
+    console.log("in isRateLimited 1", remaining);
     // If the remaining time is less than 0, then remove the rate limit timestamp.
-    if (remaining <= 0) this.available.resetAt = undefined;
+    if (remaining <= 0) {
+      this.available.amount = this.available.max;
+      this.available.resetAt = undefined;
+    }
 
     return remaining > 0;
   }
@@ -42,14 +46,15 @@ export class RestQueue extends Queue<RequestData> {
   async process() {
     // If the queue is processing, return.
     if (this.processing) return;
-    console.log("in process 2");
+    // console.log("in process 2");
     // If this queue has a timeout set already to process queue its rate limited.
     if (this.timeoutID) return;
-    console.log("in process 3");
+    // console.log("in process 3");
 
     // Check if globally rate limited.
     if (this.manager.isGloballyRateLimited) {
-      console.log("in process 4");
+      // console.log("in process 4");
+      console.log('MAKING TIMEOUT 1', this.manager.globallyRateLimitedUntil! - Date.now());
       this.timeoutID = setTimeout(() => {
         this.timeoutID = undefined;
         this.process();
@@ -59,7 +64,9 @@ export class RestQueue extends Queue<RequestData> {
 
     // Check if this queue is rate limited.
     if (this.isRateLimited) {
-      console.log("in process 5");
+      // console.log("in process 5");
+      console.log('MAKING TIMEOUT 2', this.available.resetAt! - Date.now());
+
       this.timeoutID = setTimeout(() => {
         this.timeoutID = undefined;
         this.process();
@@ -67,7 +74,7 @@ export class RestQueue extends Queue<RequestData> {
       return;
     }
 
-    console.log("in process 6");
+    // console.log("in process 6");
     // Set the queue to processing.
     this.processing = true;
 
@@ -82,8 +89,15 @@ export class RestQueue extends Queue<RequestData> {
         return;
       }
 
-      // console.log("in process 9");
-      if (this.available.amount && this.available.amount <= 0) break;
+      console.log("in process 9", this.available.amount);
+      if (
+        this.available.amount === 0 ||
+        (this.available.amount && this.available.amount <= 0)
+      ) {
+        this.items.unshift(item);
+        break;
+      }
+
       // console.log("in process 10");
       await this.sendRequest(item);
       // console.log("in process 11");
@@ -93,12 +107,13 @@ export class RestQueue extends Queue<RequestData> {
     // Set the queue to not processing.
     this.processing = false;
     if (!this.items.length) {
-      // console.log("in process 13");
+      console.log("in process 13");
       this.manager.queues.delete(this.id);
       return;
     } else if (this.available.resetAt) {
-      // console.log("in process 14");
+      console.log('MAKING TIMEOUT 3', this.available.resetAt! - Date.now());
       this.timeoutID = setTimeout(() => {
+        console.log("in process 15");
         this.timeoutID = undefined;
         this.process();
       }, this.available.resetAt - Date.now());
@@ -126,11 +141,11 @@ export class RestQueue extends Queue<RequestData> {
       console.log("in sendRequest 2");
       // Process headers
       this.processHeaders(item, response.headers);
-      // console.log("in sendRequest 3");
+      console.log("in sendRequest 3");
       // Handle any errors
       if (response.status < 200 || response.status >= 400)
         return this.handleError(item, response);
-      // console.log("in sendRequest 4");
+      console.log("in sendRequest 4");
       // handle 204 undefined response
       return response.status !== 204 ? await response.json() : undefined;
     } catch (error) {
@@ -150,7 +165,8 @@ export class RestQueue extends Queue<RequestData> {
 
     // The timestamp when the amount of requests will be reset.
     const resetAt = headers.get("X-RateLimit-Reset-After");
-    this.available.resetAt = resetAt ? Number(resetAt) * 1000 : undefined;
+    console.log('reset header', headers.get("X-RateLimit-Reset-After"), headers.get("X-RateLimit-Reset"))
+    this.available.resetAt = resetAt ? Date.now() + Number(resetAt) * 1000 : undefined;
 
     // A unique string denoting the rate limit being encountered (non-inclusive of top-level resources in the path)
     const bucketID = headers.get("X-RateLimit-Bucket");
@@ -167,6 +183,8 @@ export class RestQueue extends Queue<RequestData> {
       if (scope && scope !== "shared") {
         this.manager.invalid.count++;
         // If necessary, create a timeout which will reset the invalid counter.
+        console.log('MAKING TIMEOUT 4', this.manager.invalid.interval);
+
         if (!this.manager.invalid.timeoutID)
           this.manager.invalid.timeoutID = setTimeout(() => {
             this.manager.invalid.count = 0;
@@ -181,11 +199,14 @@ export class RestQueue extends Queue<RequestData> {
   }
 
   async handleError(item: RequestData, response: Response) {
+    console.log("in handleError 1");
     // Handle rate limited errors
     if (response.status === 429) {
+      console.log("in handleError 2");
       if (!item.retries) item.retries = 0;
       // This request should now be deleted.
       else if (item.retries >= this.manager.maxRetries) {
+        console.log("in handleError 3");
         // Alert the user that this request has been deleted.
         await this.manager.maxRetriesExceeded(item, response);
         return item.reject?.(
@@ -200,15 +221,22 @@ export class RestQueue extends Queue<RequestData> {
       // Add back to queue
       const resetAfter = response.headers.get("Retry-After");
       if (resetAfter) {
+        console.log("in handleError 4");
         // Store this id so it can be cancel if necessary.
+        console.log('MAKING TIMEOUT 5', Number(resetAfter) * 1000);
+
         item.retryID = setTimeout(() => {
+          console.log("in handleError 45");
           // Add to the front of the queue since this request is being retried.
           this.items.unshift(item);
+          console.log("in handleError 46");
         }, Number(resetAfter) * 1000);
       }
+      console.log("in handleError 6");
       return;
     }
 
+    console.log("in handleError 5");
     // Handle other errors
     item.reject?.({
       status: response.status,
