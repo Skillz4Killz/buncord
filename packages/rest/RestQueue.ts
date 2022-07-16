@@ -1,3 +1,4 @@
+import { delay } from "../util/delay";
 import { Queue } from "../util/Queue";
 import RestManager, { RequestData } from "./RestManager";
 
@@ -43,6 +44,12 @@ export class RestQueue extends Queue<RequestData> {
     return remaining > 0;
   }
 
+  /** Delays the process for a short period of time. */
+  async delayUntil(milliseconds: number) {
+    await delay(milliseconds);
+    this.process();
+  }
+
   async process() {
     // If the queue is processing, return.
     if (this.processing) return;
@@ -54,23 +61,23 @@ export class RestQueue extends Queue<RequestData> {
     // Check if globally rate limited.
     if (this.manager.isGloballyRateLimited) {
       // console.log("in process 4");
-      console.log('MAKING TIMEOUT 1', this.manager.globallyRateLimitedUntil! - Date.now());
-      this.timeoutID = setTimeout(() => {
-        this.timeoutID = undefined;
-        this.process();
-      }, this.manager.globallyRateLimitedUntil! - Date.now());
+      console.log(
+        "MAKING TIMEOUT 1",
+        this.manager.globallyRateLimitedUntil! - Date.now()
+      );
+      await this.delayUntil(
+        this.manager.globallyRateLimitedUntil! - Date.now()
+      );
       return;
     }
 
     // Check if this queue is rate limited.
     if (this.isRateLimited) {
       // console.log("in process 5");
-      console.log('MAKING TIMEOUT 2', this.available.resetAt! - Date.now());
+      console.log("MAKING TIMEOUT 2", this.available.resetAt! - Date.now());
 
-      this.timeoutID = setTimeout(() => {
-        this.timeoutID = undefined;
-        this.process();
-      }, this.available.resetAt! - Date.now());
+      await this.delayUntil(this.available.resetAt! - Date.now());
+
       return;
     }
 
@@ -111,12 +118,8 @@ export class RestQueue extends Queue<RequestData> {
       this.manager.queues.delete(this.id);
       return;
     } else if (this.available.resetAt) {
-      console.log('MAKING TIMEOUT 3', this.available.resetAt! - Date.now());
-      this.timeoutID = setTimeout(() => {
-        console.log("in process 15");
-        this.timeoutID = undefined;
-        this.process();
-      }, this.available.resetAt - Date.now());
+      console.log("MAKING TIMEOUT 3", this.available.resetAt! - Date.now());
+      await this.delayUntil(this.available.resetAt! - Date.now());
     }
   }
 
@@ -165,8 +168,14 @@ export class RestQueue extends Queue<RequestData> {
 
     // The timestamp when the amount of requests will be reset.
     const resetAt = headers.get("X-RateLimit-Reset-After");
-    console.log('reset header', headers.get("X-RateLimit-Reset-After"), headers.get("X-RateLimit-Reset"))
-    this.available.resetAt = resetAt ? Date.now() + Number(resetAt) * 1000 : undefined;
+    console.log(
+      "reset header",
+      headers.get("X-RateLimit-Reset-After"),
+      headers.get("X-RateLimit-Reset")
+    );
+    this.available.resetAt = resetAt
+      ? Date.now() + Number(resetAt) * 1000
+      : undefined;
 
     // A unique string denoting the rate limit being encountered (non-inclusive of top-level resources in the path)
     const bucketID = headers.get("X-RateLimit-Bucket");
@@ -183,13 +192,10 @@ export class RestQueue extends Queue<RequestData> {
       if (scope && scope !== "shared") {
         this.manager.invalid.count++;
         // If necessary, create a timeout which will reset the invalid counter.
-        console.log('MAKING TIMEOUT 4', this.manager.invalid.interval);
+        console.log("MAKING TIMEOUT 4", this.manager.invalid.interval);
 
         if (!this.manager.invalid.timeoutID)
-          this.manager.invalid.timeoutID = setTimeout(() => {
-            this.manager.invalid.count = 0;
-            this.manager.invalid.timeoutID = 0;
-          }, this.manager.invalid.interval);
+          this.delayUntil(this.manager.invalid.interval);
       } else {
         // The number of seconds until the rate limit will be reset.
         if (retryAfter)
@@ -223,14 +229,11 @@ export class RestQueue extends Queue<RequestData> {
       if (resetAfter) {
         console.log("in handleError 4");
         // Store this id so it can be cancel if necessary.
-        console.log('MAKING TIMEOUT 5', Number(resetAfter) * 1000);
+        console.log("MAKING TIMEOUT 5", Number(resetAfter) * 1000);
 
-        item.retryID = setTimeout(() => {
-          console.log("in handleError 45");
-          // Add to the front of the queue since this request is being retried.
-          this.items.unshift(item);
-          console.log("in handleError 46");
-        }, Number(resetAfter) * 1000);
+        await delay(Number(resetAfter) * 1000);
+        // Add to the front of the queue since this request is being retried.
+        this.items.unshift(item);
       }
       console.log("in handleError 6");
       return;
