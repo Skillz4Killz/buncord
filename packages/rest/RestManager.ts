@@ -1,6 +1,7 @@
 import { Buffer } from "fs";
 import { RestQueue } from "./RestQueue";
 import { routefy } from "./routefy";
+import { version } from "../../package.json";
 
 export class RestManager {
   /** The options used to configure this manager. */
@@ -92,6 +93,7 @@ export class RestManager {
         method: data.method,
         headers: {
           Authorization: this.authorization,
+          "User-Agent": `DiscordBot (https://github.com/Skillz4Killz/buncord, v${version}})`,
           "Content-Type": ["GET", "DELETE"].includes(data.method)
             ? ""
             : "application/json",
