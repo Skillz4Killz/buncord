@@ -1,9 +1,13 @@
 {
   "name": "buncord",
+  "private": true,
   "version": "0.0.1",
   "scripts": {
     "clean": "rm -rf dist out node_modules"
   },
+  "workspaces": [
+    "packages/**"
+  ],
   "dependencies": {
     "bun-types": "^0.0.79"
   }
