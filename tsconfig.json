@@ -1,5 +1,7 @@
 {
   "compilerOptions": {
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
     "strict": true,
     "lib": ["ESNext"],
     "module": "esnext",
