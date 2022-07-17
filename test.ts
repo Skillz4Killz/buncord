@@ -12,5 +12,3 @@ for (let i = 1; i <= 100; i++) {
     body: { content: "Hello Second Channel " + i },
   });
 }
-
-
