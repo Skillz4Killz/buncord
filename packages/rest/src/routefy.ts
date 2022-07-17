@@ -1,4 +1,4 @@
-import { snowflakeCreatedAt } from "../util/snowflakes";
+import { snowflakeCreatedAt } from "../../util/snowflakes";
 import { RequestMethod } from "./RestManager";
 
 /**

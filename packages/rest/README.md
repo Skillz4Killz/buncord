@@ -1,3 +1,3 @@
-# @buncord/rest
+# `@buncordts/rest`
 
-DO NOT USE THIS! THIS IS JUST FOR ME TO LEARN AND EXPERIMENT!
+buncord REST package.

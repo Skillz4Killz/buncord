@@ -1,5 +1,5 @@
-import { delay } from "../util/delay";
-import { Queue } from "../util/Queue";
+import { delay } from "../../util/delay";
+import { Queue } from "../../util/Queue";
 import RestManager, { RequestData } from "./RestManager";
 
 export class RestQueue extends Queue<RequestData> {
@@ -16,7 +16,11 @@ export class RestQueue extends Queue<RequestData> {
     resetAt: undefined,
     /** The maximum amount of requests that can be made at the moment. */
     max: undefined,
-  };
+  }
+
+  processing: boolean = false;
+  items: any[] = [];
+  next: () => any = () => {};
 
   constructor(manager: RestManager, id: string) {
     super();
