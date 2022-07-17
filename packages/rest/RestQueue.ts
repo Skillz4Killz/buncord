@@ -18,9 +18,6 @@ export class RestQueue extends Queue<RequestData> {
     max: undefined,
   };
 
-  /** The timeout ID of the timeout that is set to process this queue. */
-  timeoutID: number | undefined;
-
   constructor(manager: RestManager, id: string) {
     super();
 
@@ -52,8 +49,6 @@ export class RestQueue extends Queue<RequestData> {
   async process() {
     // If the queue is processing, return.
     if (this.processing) return;
-    // If this queue has a timeout set already to process queue its rate limited.
-    if (this.timeoutID) return;
 
     // Check if globally rate limited.
     if (this.manager.isGloballyRateLimited) {
@@ -95,7 +90,8 @@ export class RestQueue extends Queue<RequestData> {
     // Set the queue to not processing.
     this.processing = false;
     if (!this.items.length) {
-      this.manager.queues.delete(this.id);
+      // TODO: Figure out how to delete unused queues in a better way. This is potential bug for 429 here.
+      // this.manager.queues.delete(this.id);
       return;
     } else if (this.available.resetAt) {
       await this.delayUntil(this.available.resetAt! - Date.now());

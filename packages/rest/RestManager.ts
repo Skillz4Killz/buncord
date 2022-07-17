@@ -243,8 +243,6 @@ export interface RequestData {
   bucketID?: string;
   /** The amount of times this request has been retried. */
   retries?: number;
-  /** The timeout id if this request failed and needs to be added back to the queue after some time. */
-  retryID?: number;
 }
 
 export type RequestMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
