@@ -1,5 +1,5 @@
 {
-  "name": "@buncordorg/rest",
+  "name": "@buncordorg/util",
   "version": "0.0.1",
   "main": "dist",
   "files": [

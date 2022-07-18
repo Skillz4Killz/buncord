@@ -1,5 +1,5 @@
-import { snowflakeCreatedAt } from "../../util/snowflakes";
-import { RequestMethod } from "./RestManager";
+import { snowflakeCreatedAt } from "@buncordorg/util";
+import { RequestMethod } from "./RestManager.js";
 
 /**
  * https://github.com/abalabahaha/eris/blob/dev/lib/rest/RequestHandler.js#L405

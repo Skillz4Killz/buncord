@@ -1,7 +1,7 @@
-import { Buffer } from "fs";
 import { RestQueue } from "./RestQueue";
 import { routefy } from "./routefy";
-import { version } from "../../../package.json";
+// @ts-ignore
+import { version } from "../package.json" assert { type: "json" };
 
 export class RestManager {
   /** The options used to configure this manager. */

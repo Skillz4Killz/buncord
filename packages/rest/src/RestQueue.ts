@@ -1,6 +1,5 @@
-import { delay } from "../../util/delay";
-import { Queue } from "../../util/Queue";
-import RestManager, { RequestData } from "./RestManager";
+import { delay, Queue } from "@buncordorg/util";
+import RestManager, { RequestData } from "./RestManager.js";
 
 export class RestQueue extends Queue<RequestData> {
   /** The simplified form of the url which this queue handles. For example, /channels/ID/messages */
@@ -18,7 +17,7 @@ export class RestQueue extends Queue<RequestData> {
     max: undefined,
   }
 
-  processing: boolean = false;
+  processing = false;
   items: any[] = [];
   next: () => any = () => {};
 

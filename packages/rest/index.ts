@@ -1,1 +1,1 @@
-export * from './src/RestManager';
+export * from './src/RestManager.js';
