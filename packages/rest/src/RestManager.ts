@@ -1,7 +1,7 @@
-import { RestQueue } from "./RestQueue";
-import { routefy } from "./routefy";
+import { RestQueue } from './RestQueue.js';
+import { routefy } from './routefy.js';
 // @ts-ignore
-import { version } from "../package.json" assert { type: "json" };
+import { version } from '../package.json' assert { type: 'json' };
 
 export class RestManager {
   /** The options used to configure this manager. */
@@ -56,7 +56,7 @@ export class RestManager {
 
   /** The base url of the discord api or the proxy that was provided with the api and version added on. */
   get baseURL(): string {
-    return `${this.options.baseURL ?? "https://discord.com"}/api/v${
+    return `${this.options.baseURL ?? 'https://discord.com'}/api/v${
       this.version
     }`;
   }
@@ -68,15 +68,15 @@ export class RestManager {
 
   /** Whether or not this manager is globally rate limited. */
   get isGloballyRateLimited(): boolean {
-    if (!this.globallyRateLimitedUntil) return false;
+    if (!this.globallyRateLimitedUntil) {return false;}
 
     // Check if the bot is rate limited from invalid requests.
-    if (this.invalid.count >= this.invalid.max) return true;
+    if (this.invalid.count >= this.invalid.max) {return true;}
 
     // Check if the rate limit has expired.
     const remaining = this.globallyRateLimitedUntil - Date.now();
     // If the remaining time is less than 0, then remove the rate limit timestamp.
-    if (remaining <= 0) this.globallyRateLimitedUntil = undefined;
+    if (remaining <= 0) {this.globallyRateLimitedUntil = undefined;}
 
     return remaining > 0;
   }
@@ -89,19 +89,19 @@ export class RestManager {
   /** Make a request to discords api or the proxy url. */
   async makeRequest<T>(data: RequestData): Promise<T> {
     if (this.isConnectedToProxy)
-      return (await fetch(`${this.baseURL}/${data.url}`, {
-        method: data.method,
-        headers: {
-          Authorization: this.authorization,
-          "User-Agent": `DiscordBot (https://github.com/Skillz4Killz/buncord, v${version}})`,
-          "Content-Type": ["GET", "DELETE"].includes(data.method)
-            ? ""
-            : "application/json",
-          "X-Audit-Log-Reason": data.reason ?? "",
-          ...(data.headers ?? {}),
-        },
-        body: data.body ? JSON.stringify(data.body) : undefined,
-      }).then((res) => res.json())) as T;
+    {return (await fetch(`${this.baseURL}/${data.url}`, {
+      method: data.method,
+      headers: {
+        Authorization: this.authorization,
+        'User-Agent': `DiscordBot (https://github.com/Skillz4Killz/buncord, v${version}})`,
+        'Content-Type': ['GET', 'DELETE'].includes(data.method)
+          ? ''
+          : 'application/json',
+        'X-Audit-Log-Reason': data.reason ?? '',
+        ...(data.headers ?? {}),
+      },
+      body: data.body ? JSON.stringify(data.body) : undefined,
+    }).then((res) => res.json())) as T;}
 
     // This request needs to be sent to discord, so we need to queue it properly.
     return new Promise((resolve, reject) => {
@@ -134,7 +134,7 @@ export class RestManager {
 
   /** Sends a GET request */
   async get<T = undefined>(url: string): Promise<T> {
-    return await this.makeRequest({ method: "GET", url });
+    return await this.makeRequest({ method: 'GET', url });
   }
 
   /** Sends a post request */
@@ -147,7 +147,7 @@ export class RestManager {
     }
   ): Promise<T> {
     return await this.makeRequest({
-      method: "POST",
+      method: 'POST',
       url,
       body: payload?.body,
       reason: payload?.reason,
@@ -165,7 +165,7 @@ export class RestManager {
     }
   ): Promise<T> {
     return await this.makeRequest({
-      method: "PATCH",
+      method: 'PATCH',
       url,
       body: payload?.body,
       reason: payload?.reason,
@@ -182,7 +182,7 @@ export class RestManager {
     }
   ): Promise<T> {
     return await this.makeRequest({
-      method: "PUT",
+      method: 'PUT',
       url,
       body: payload?.body,
       reason: payload?.reason,
@@ -195,7 +195,7 @@ export class RestManager {
     payload?: { reason?: string }
   ): Promise<T> {
     return await this.makeRequest({
-      method: "DELETE",
+      method: 'DELETE',
       url,
       reason: payload?.reason,
     });
@@ -247,7 +247,7 @@ export interface RequestData {
   retries?: number;
 }
 
-export type RequestMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
+export type RequestMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
 
 export interface FileContent {
   /** The buffer for the file you want to send. */
