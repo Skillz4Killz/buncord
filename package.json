@@ -1,10 +1,20 @@
 {
-  "name": "buncord",
+  "name": "@buncordts/buncord",
   "version": "0.0.1",
+  "files": [
+    "dist/**"
+  ],
   "scripts": {
     "clean": "rm -rf dist out node_modules"
   },
+  "workspaces": [
+    "packages/**"
+  ],
   "dependencies": {
     "bun-types": "^0.0.79"
+  },
+  "devDependencies": {
+    "@types/node": "^18.0.6",
+    "typescript": "^4.7.4"
   }
 }

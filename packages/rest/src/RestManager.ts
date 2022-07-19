@@ -1,11 +1,9 @@
-import { Buffer } from "fs";
 import { RestQueue } from "./RestQueue";
 import { routefy } from "./routefy";
-import { version } from "../../package.json";
-import { BigString } from "../util/snowflakes";
-import Routes from "./Routes";
-import { RoleOptions } from "./typings";
-import { DiscordRole } from "../typings/discord";
+import { version } from "../../../package.json";
+import { BigString } from "../../util/snowflakes";
+import { RoleOptions } from "../typings";
+import { DiscordRole } from "../../typings/discord";
 
 export class RestManager {
   /** The options used to configure this manager. */

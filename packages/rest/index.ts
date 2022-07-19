@@ -1,1 +1,1 @@
-export * from './RestManager';
+export * from './src/RestManager';
