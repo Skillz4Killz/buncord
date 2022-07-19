@@ -2,6 +2,10 @@ import { Buffer } from "fs";
 import { RestQueue } from "./RestQueue";
 import { routefy } from "./routefy";
 import { version } from "../../package.json";
+import { BigString } from "../util/snowflakes";
+import Routes from "./Routes";
+import { RoleOptions } from "./typings";
+import { DiscordRole } from "../typings/discord";
 
 export class RestManager {
   /** The options used to configure this manager. */
@@ -100,7 +104,32 @@ export class RestManager {
           "X-Audit-Log-Reason": data.reason ?? "",
           ...(data.headers ?? {}),
         },
-        body: data.body ? JSON.stringify(data.body) : undefined,
+        body: data.body
+          ? JSON.stringify(data.body, function (key, value) {
+              if (Array.isArray(value)) return value;
+
+              // If the value is a big string, then convert it to a string.
+              if (typeof value === "bigint") return value.toString();
+
+              // Convert camelCase to snake_case for the body because discord is crazy and used python.
+              if (value && typeof value === "object") {
+                const replacement: Record<string, any> = {};
+                for (const k in value) {
+                  if (Object.hasOwnProperty.call(value, k)) {
+                    replacement[
+                      k.replace(
+                        /[A-Z]/g,
+                        (letter) => `_${letter.toLowerCase()}`
+                      )
+                    ] = value[k];
+                  }
+                }
+                return replacement;
+              }
+
+              return value;
+            })
+          : undefined,
       }).then((res) => res.json())) as T;
 
     // This request needs to be sent to discord, so we need to queue it properly.
@@ -141,7 +170,7 @@ export class RestManager {
   async post<T = undefined>(
     url: string,
     payload?: {
-      body?: Record<string, unknown>;
+      body?: Record<string, any>;
       reason?: string;
       file?: FileContent | FileContent[];
     }
@@ -159,7 +188,7 @@ export class RestManager {
   async patch<T = undefined>(
     url: string,
     payload?: {
-      body?: Record<string, unknown> | null | string | any[];
+      body?: Record<string, any> | null | string | any[];
       reason?: string;
       file?: FileContent | FileContent[];
     }
@@ -205,6 +234,70 @@ export class RestManager {
   async maxRetriesExceeded(item: RequestData, response: Response) {
     console.log(
       `Max retries exceeded for ${item.url}. Error: ${response.status}`
+    );
+  }
+
+  /** Add a role to a guild member */
+  async addRole(
+    guildID: BigString,
+    memberID: BigString,
+    roleID: BigString,
+    reason?: string
+  ): Promise<void> {
+    return await this.put(
+      `/guilds/${guildID}/members/${memberID}/roles/${roleID}`,
+      { reason }
+    );
+  }
+
+  /** Create a role in a guild. */
+  async createRole(guildID: BigString, options: RoleOptions, reason?: string): Promise<DiscordRole> {
+    return await this.post(`/guilds/${guildID}/roles`, {
+      body: options,
+      reason,
+    });
+  }
+
+  /** Delete a role in a guild. */
+  async deleteRole(
+    guildID: BigString,
+    roleID: BigString,
+    reason?: string
+  ) {
+    return await this.delete(`/guilds/${guildID}/roles/${roleID}`, {
+      reason,
+    });
+  }
+
+  /** Edit a role in a guild. */
+  async editRole(
+    guildID: BigString,
+    roleID: BigString,
+    options: RoleOptions,
+    reason?: string
+  ) {
+    return await this.patch(`/guilds/${guildID}/roles/${roleID}`, {
+      body: options,
+      reason,
+    });
+  }
+
+  // TODO: Guild.getRoles()
+  /** Get all the roles in the guild. */
+  async getRoles(guildID: BigString) {
+    return await this.get(`/guilds/${guildID}/roles`);
+  }
+
+  /** Remove a role from a guild member */
+  async removeRole(
+    guildID: BigString,
+    memberID: BigString,
+    roleID: BigString,
+    reason?: string
+  ) {
+    return await this.delete(
+      `/guilds/${guildID}/members/${memberID}/roles/${roleID}`,
+      { reason }
     );
   }
 }
