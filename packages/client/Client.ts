@@ -21,6 +21,16 @@ export class Client {
     return !!this.options.useBigints;
   }
 
+  /** The default image format to use when one is not provided. */
+  get defaultImageFormat(): string {
+    return this.options.defaultImageFormat ?? "png";
+  }
+
+  /** The default image size to use when one is not provided. */
+  get defaultImageSize(): number {
+    return this.options.defaultImageSize ?? 128;
+  }
+
   /** Add a role to a guild member */
   async addRole(
     guildID: BigString,
@@ -113,4 +123,8 @@ export interface ClientOptions {
   token: string;
   /** Whether or not to use bigints. */
   useBigints?: boolean;
+  /** The default format for images to use when one is not provided. */
+  defaultImageFormat?: "jpg" | "png";
+  /** The default size for images to use when one is not provided. */
+  defaultImageSize?: number;
 }

@@ -115,6 +115,23 @@ export class Role extends Base {
       : undefined;
   }
 
+  /** Whether or not the icon for this role is animated. */
+  get isAnimatedIcon(): boolean {
+    return !!this.icon?.startsWith("a_");
+  }
+
+  /** The url for this roles icon. */
+  get iconURL(): string {
+    return `https://cdn.discordapp.com/role-icons/${this.id}/${this.icon}.${
+      this.isAnimatedIcon ? ".gif" : this.client.defaultImageFormat
+    }?size=${this.client.defaultImageSize}`;
+  }
+
+  /** The string form of the role mention. */
+  get mention(): string {
+    return `<@&${this.id}>`;
+  }
+
   /** Add this role to a guild member. */
   async addToMember(memberID: BigString, reason?: string): Promise<void> {
     return await this.client.addRole(this.guildID, memberID, this.id, reason);
@@ -122,15 +139,19 @@ export class Role extends Base {
 
   /** Clone this role in the server. */
   async clone(name: string, reason?: string): Promise<Role> {
-    return await this.client.createRole(this.guildID, {
-      color: this.color,
-      hoist: this.isHoisted,
-      icon: this.icon,
-      mentionable: this.isMentionable,
-      permissions: this.permissions.bitfield,
-      unicodeEmoji: this.unicodeEmoji,
-      name,
-    }, reason);
+    return await this.client.createRole(
+      this.guildID,
+      {
+        color: this.color,
+        hoist: this.isHoisted,
+        icon: this.icon,
+        mentionable: this.isMentionable,
+        permissions: this.permissions.bitfield,
+        unicodeEmoji: this.unicodeEmoji,
+        name,
+      },
+      reason
+    );
   }
 
   /** Delete this role. */
@@ -142,10 +163,15 @@ export class Role extends Base {
   async edit(options: RoleOptions, reason?: string): Promise<void> {
     return await this.client.editRole(this.guildID, this.id, options, reason);
   }
- 
+
   /** Remove this role from a guild member. */
   async removeFromMember(memberID: BigString, reason?: string): Promise<void> {
-    return await this.client.removeRole(this.guildID, memberID, this.id, reason);
+    return await this.client.removeRole(
+      this.guildID,
+      memberID,
+      this.id,
+      reason
+    );
   }
 }
 
