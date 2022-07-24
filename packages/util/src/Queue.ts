@@ -28,8 +28,8 @@ export class Queue<T> {
   }
 
   /** Removes an item from the queue. */
+  // eslint-disable-next-line
   remove(item: T): void {
-
   }
 
   /** Returns the next item in the queue. */

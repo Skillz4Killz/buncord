@@ -1,3 +1,3 @@
 # buncord
 
-DO NOT USE THIS! THIS IS JUST FOR ME TO LEARN AND EXPERIMENT!
+**This library is experimental. Do not use it.**

@@ -1,3 +1,1 @@
-# `@buncordts/rest`
-
-buncord REST package.
+# `@buncordorg/rest`
