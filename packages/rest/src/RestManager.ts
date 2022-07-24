@@ -1,7 +1,6 @@
 import { RestQueue } from './RestQueue.js';
 import { routefy } from './routefy.js';
-// @ts-ignore
-import { version } from '../package.json' assert { type: 'json' };
+import { version } from '../package.json';
 
 export class RestManager {
   /** The options used to configure this manager. */
@@ -56,9 +55,9 @@ export class RestManager {
 
   /** The base url of the discord api or the proxy that was provided with the api and version added on. */
   get baseURL(): string {
-    return `${this.options.baseURL ?? 'https://discord.com'}/api/v${
-      this.version
-    }`;
+    return `${
+      this.options.baseURL ?? 'https://discord.com'
+    }/api/v${this.version}`;
   }
 
   /** Whether or not this current instance is connected to a proxy rest. */
@@ -88,20 +87,22 @@ export class RestManager {
 
   /** Make a request to discords api or the proxy url. */
   async makeRequest<T>(data: RequestData): Promise<T> {
-    if (this.isConnectedToProxy)
-    {return (await fetch(`${this.baseURL}/${data.url}`, {
-      method: data.method,
-      headers: {
-        Authorization: this.authorization,
-        'User-Agent': `DiscordBot (https://github.com/Skillz4Killz/buncord, v${version}})`,
-        'Content-Type': ['GET', 'DELETE'].includes(data.method)
-          ? ''
-          : 'application/json',
-        'X-Audit-Log-Reason': data.reason ?? '',
-        ...(data.headers ?? {}),
-      },
-      body: data.body ? JSON.stringify(data.body) : undefined,
-    }).then((res) => res.json())) as T;}
+    if (this.isConnectedToProxy) {
+      return (await fetch(`${this.baseURL}/${data.url}`, {
+        method: data.method,
+        headers: {
+          Authorization: this.authorization,
+          'User-Agent':
+            `DiscordBot (https://github.com/Skillz4Killz/buncord, v${version}})`,
+          'Content-Type': ['GET', 'DELETE'].includes(data.method)
+            ? ''
+            : 'application/json',
+          'X-Audit-Log-Reason': data.reason ?? '',
+          ...(data.headers ?? {}),
+        },
+        body: data.body ? JSON.stringify(data.body) : undefined,
+      }).then((res) => res.json())) as T;
+    }
 
     // This request needs to be sent to discord, so we need to queue it properly.
     return new Promise((resolve, reject) => {
@@ -144,7 +145,7 @@ export class RestManager {
       body?: Record<string, unknown>;
       reason?: string;
       file?: FileContent | FileContent[];
-    }
+    },
   ): Promise<T> {
     return await this.makeRequest({
       method: 'POST',
@@ -162,7 +163,7 @@ export class RestManager {
       body?: Record<string, unknown> | null | string | any[];
       reason?: string;
       file?: FileContent | FileContent[];
-    }
+    },
   ): Promise<T> {
     return await this.makeRequest({
       method: 'PATCH',
@@ -179,7 +180,7 @@ export class RestManager {
     payload?: {
       body?: Record<string, string | number> | any[];
       reason?: string;
-    }
+    },
   ): Promise<T> {
     return await this.makeRequest({
       method: 'PUT',
@@ -192,7 +193,7 @@ export class RestManager {
   /** Sends a delete request. */
   async delete<T = undefined>(
     url: string,
-    payload?: { reason?: string }
+    payload?: { reason?: string },
   ): Promise<T> {
     return await this.makeRequest({
       method: 'DELETE',
@@ -204,7 +205,7 @@ export class RestManager {
   /** Handler that runs when a request fails too many times. Keep async so it can be overriden to customize and send to a webhook on a dev server to alert you. */
   async maxRetriesExceeded(item: RequestData, response: Response) {
     console.log(
-      `Max retries exceeded for ${item.url}. Error: ${response.status}`
+      `Max retries exceeded for ${item.url}. Error: ${response.status}`,
     );
   }
 }
@@ -238,8 +239,10 @@ export interface RequestData {
   /** The file attachment(s) you wish to send. */
   file?: FileContent | FileContent[];
   /** The resolve function to call when the request is finished. */
+  // eslint-disable-next-line
   resolve?: (value: any) => void;
   /** The reject function to call when the request fails. */
+  // eslint-disable-next-line
   reject?: (reason?: any) => void;
   /** Used to determine if this items route is ratelimited from another shared request made previously. */
   bucketID?: string;

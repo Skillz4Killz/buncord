@@ -56,7 +56,7 @@ export class RestQueue extends Queue<RequestData> {
     // Check if globally rate limited.
     if (this.manager.isGloballyRateLimited) {
       await this.delayUntil(
-        this.manager.globallyRateLimitedUntil! - Date.now()
+        this.manager.globallyRateLimitedUntil! - Date.now(),
       );
       return;
     }
@@ -121,8 +121,9 @@ export class RestQueue extends Queue<RequestData> {
       // Process headers
       this.processHeaders(item, response.headers);
       // Handle any errors
-      if (response.status < 200 || response.status >= 400)
-      {return this.handleError(item, response);}
+      if (response.status < 200 || response.status >= 400) {
+        return this.handleError(item, response);
+      }
       // handle 204 undefined response
       return response.status !== 204 ? await response.json() : undefined;
     } catch (error) {
@@ -161,12 +162,14 @@ export class RestQueue extends Queue<RequestData> {
       if (scope && scope !== 'shared') {
         this.manager.invalid.count++;
         // If necessary, create a timeout which will reset the invalid counter.
-        if (!this.manager.invalid.timeoutID)
-        {this.delayUntil(this.manager.invalid.interval);}
+        if (!this.manager.invalid.timeoutID) {
+          this.delayUntil(this.manager.invalid.interval);
+        }
       } else {
         // The number of seconds until the rate limit will be reset.
-        if (retryAfter)
-        {this.manager.globallyRateLimitedUntil = Number(retryAfter) * 1000;}
+        if (retryAfter) {
+          this.manager.globallyRateLimitedUntil = Number(retryAfter) * 1000;
+        }
       }
     }
   }
@@ -180,9 +183,11 @@ export class RestQueue extends Queue<RequestData> {
         // Alert the user that this request has been deleted.
         await this.manager.maxRetriesExceeded(item, response);
         return item.reject?.(
-          `[RestFailedMaxRetries] This request reached the max amount of retries. ${JSON.stringify(
-            item
-          )}`
+          `[RestFailedMaxRetries] This request reached the max amount of retries. ${
+            JSON.stringify(
+              item,
+            )
+          }`,
         );
       }
 
