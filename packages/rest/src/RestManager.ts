@@ -1,9 +1,11 @@
 import { RestQueue } from "./RestQueue";
 import { routefy } from "./routefy";
-import { version } from "../../../package.json";
+import json from "../../../package.json";
 import { BigString } from "../../util/snowflakes";
 import { RoleOptions } from "../typings";
 import { DiscordRole } from "../../typings/discord";
+
+const {version} = json;
 
 export class RestManager {
   /** The options used to configure this manager. */
