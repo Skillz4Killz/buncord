@@ -20,7 +20,6 @@ export class RestQueue extends Queue<RequestData> {
 
   processing: boolean = false;
   items: any[] = [];
-  next: () => any = () => {};
 
   constructor(manager: RestManager, id: string) {
     super();
