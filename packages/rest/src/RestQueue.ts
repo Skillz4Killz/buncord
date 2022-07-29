@@ -30,7 +30,9 @@ export class RestQueue extends Queue<RequestData> {
 
   /** Whether or not this queue is rate limited. */
   get isRateLimited(): boolean {
-    if (!this.available.resetAt) {return false;}
+    if (!this.available.resetAt) {
+      return false;
+    }
 
     // Check if the rate limit has expired.
     const remaining = this.available.resetAt - Date.now();
@@ -51,7 +53,9 @@ export class RestQueue extends Queue<RequestData> {
 
   async process() {
     // If the queue is processing, return.
-    if (this.processing) {return;}
+    if (this.processing) {
+      return;
+    }
 
     // Check if globally rate limited.
     if (this.manager.isGloballyRateLimited) {
@@ -103,7 +107,9 @@ export class RestQueue extends Queue<RequestData> {
 
   async sendRequest(item: RequestData) {
     // Remove one from the amount of available requests.
-    if (this.available.amount) {this.available.amount--;}
+    if (this.available.amount) {
+      this.available.amount--;
+    }
 
     try {
       const response = await fetch(`${this.manager.baseURL}/${item.url}`, {
@@ -149,7 +155,9 @@ export class RestQueue extends Queue<RequestData> {
 
     // A unique string denoting the rate limit being encountered (non-inclusive of top-level resources in the path)
     const bucketID = headers.get('X-RateLimit-Bucket');
-    if (bucketID) {item.bucketID = bucketID;}
+    if (bucketID) {
+      item.bucketID = bucketID;
+    }
 
     // Returned only on HTTP 429 responses if the rate limit encountered is the global rate limit (not per-route)
     const global = headers.get('X-RateLimit-Global');
@@ -177,7 +185,10 @@ export class RestQueue extends Queue<RequestData> {
   async handleError(item: RequestData, response: Response) {
     // Handle rate limited errors
     if (response.status === 429) {
-      if (!item.retries) {item.retries = 0;}
+      if (!item.retries) {
+        item.retries = 0;
+        /* eslint-disable */
+      }
       // This request should now be deleted.
       else if (item.retries >= this.manager.maxRetries) {
         // Alert the user that this request has been deleted.

@@ -39,8 +39,11 @@ export function routefy(url: string, method: RequestMethod): string {
   if (method === 'DELETE' && route.endsWith('/messages/:id')) {
     const messageID = url.slice(url.lastIndexOf('/') + 1);
     const age = Date.now() - snowflakeCreatedAt(messageID);
-    if (age >= 1000 * 60 * 60 * 24 * 14) {method += '_OLD';}
-    else if (age <= 1000 * 10) {method += '_NEW';}
+    if (age >= 1000 * 60 * 60 * 24 * 14) {
+      method += '_OLD';
+    } else if (age <= 1000 * 10) {
+      method += '_NEW';
+    }
 
     route = method + route;
   } else if (method === 'GET' && /\/guilds\/[0-9]+\/channels$/.test(route)) {

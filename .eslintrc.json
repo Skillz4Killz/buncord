@@ -13,6 +13,7 @@
     "sourceType": "module"
   },
   "rules": {
+    "brace-style": 2,
     "arrow-parens": 2,
     "curly": 2,
     "indent": [

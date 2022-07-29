@@ -67,15 +67,21 @@ export class RestManager {
 
   /** Whether or not this manager is globally rate limited. */
   get isGloballyRateLimited(): boolean {
-    if (!this.globallyRateLimitedUntil) {return false;}
+    if (!this.globallyRateLimitedUntil) {
+      return false;
+    }
 
     // Check if the bot is rate limited from invalid requests.
-    if (this.invalid.count >= this.invalid.max) {return true;}
+    if (this.invalid.count >= this.invalid.max) {
+      return true;
+    }
 
     // Check if the rate limit has expired.
     const remaining = this.globallyRateLimitedUntil - Date.now();
     // If the remaining time is less than 0, then remove the rate limit timestamp.
-    if (remaining <= 0) {this.globallyRateLimitedUntil = undefined;}
+    if (remaining <= 0) {
+      this.globallyRateLimitedUntil = undefined;
+    }
 
     return remaining > 0;
   }
