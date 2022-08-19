@@ -5,9 +5,6 @@
   "files": [
     "dist"
   ],
-  "scripts": {
-    "build": "tsc --build"
-  },
   "repository": "https://github.com/Skillz4Killz/buncord",
   "publishConfig": {
     "access": "public"
